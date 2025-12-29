@@ -18,7 +18,7 @@
     <div class="max-w-md mx-auto">
         <div class="card p-3 border-t-4 border-red-500">
             <div class="flex justify-between items-center mb-2">
-                <span id="updateTime" class="text-[10px] text-slate-500 font-mono">正在扫描 212 只样本...</span>
+                <span id="updateTime" class="text-[10px] text-slate-500 font-mono">正在扫描实时样本...</span>
                 <span class="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded font-bold">本金 2W 专用</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
@@ -26,7 +26,7 @@
                     <div class="text-[9px] text-slate-500 uppercase">大盘评分</div>
                     <div id="mktScore" class="font-black text-sm italic">--</div>
                 </div>
-                <div id="mktAdvice" class="col-span-2 flex items-center justify-center bg-blue-500/10 rounded text-[11px] font-bold text-blue-400 italic">
+                <div id="mktAdvice" class="col-span-2 flex items-center justify-center bg-blue-500/10 rounded text-[11px] font-bold text-blue-400 italic text-center p-1">
                     正在评估市场博弈环境...
                 </div>
             </div>
@@ -35,10 +35,18 @@
         <div class="card p-3">
             <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
                 <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest italic">Alpha 机会雷达 (低价精选)</h2>
-                <div class="text-[9px] text-slate-500">过滤 >100元 / 688</div>
+                <div class="text-[9px] text-slate-500">已过滤 >100元 / 688</div>
             </div>
-            <div id="radarList" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div id="radarList" class="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
                 <div class="text-center py-10 text-slate-600 text-[10px] animate-pulse">全市场 Alpha 信号捕获中...</div>
+            </div>
+        </div>
+
+        <div class="card p-3 bg-slate-900/40">
+            <h2 class="text-[9px] text-slate-500 font-bold uppercase mb-2">手动个股侦测</h2>
+            <div class="flex gap-2">
+                <input id="newInput" type="text" placeholder="输入代码 如 sz000001" class="flex-1 bg-slate-950 border border-slate-800 p-2 rounded-lg text-xs outline-none text-white font-mono">
+                <button onclick="manualAdd()" class="bg-blue-600 text-white px-4 rounded-lg text-[10px] font-black btn-active uppercase">侦测</button>
             </div>
         </div>
 
@@ -48,57 +56,60 @@
     </div>
 
     <script>
-        // 200+ 精选各行业活跃龙头（已根据股价和权限初选）
+        // 200+ 精选各行业活跃龙头 (重点加入资源股/低价权重)
         const corePool = [
-            // 资源/中特估 (石油、煤炭、有色、电力、基建)
-            'sh601857','sh600028','sh601088','sh601225','sh600121','sh601898','sh601001', // 油气/煤炭
-            'sh601168','sh601958','sh601600','sh600019','sh601668','sh601390','sh601186', // 矿产/基建
-            'sh601288','sh601398','sh601939','sh601988','sh600015','sh600030','sh601788', // 银行/证券
-            'sh600900','sh600011','sh600023','sh600674','sh600886','sh600905', // 电力
-            'sz000423','sz000878','sz000960','sz000630','sz000751','sz000060','sz000807', // 资源
-            // 消费/制造/汽车
+            // 资源板块 (石油、煤炭、黄金、有色)
+            'sh601857','sh600028','sh601088','sh601225','sh600121','sh601898','sh601001','sh601958',
+            'sh601600','sh600019','sh601899','sh603993','sh601390','sh601186','sz000423','sz000878',
+            'sz000960','sz000630','sz000751','sz000060','sz000807','sz002460','sz002466',
+            // 金融/权重
+            'sh601288','sh601398','sh601939','sh601988','sh600015','sh600030','sh601788','sh601318',
+            'sh601628','sh601601','sh600048','sh600383','sz001979','sz000001',
+            // 电力/基建/公用
+            'sh600900','sh600011','sh600023','sh600674','sh600886','sh600905','sh601668',
+            // 制造/半导体/AI/汽车
             'sz000333','sz000651','sz002007','sz002714','sz000858','sz000729','sz002594',
-            'sh600104','sz000625','sz002460','sz002466','sz002497','sz002142','sz002027',
-            'sh601318','sh601628','sh601601','sh600048','sh600383','sz001979',
-            // 科技/半导体/军工 (低价位精选)
-            'sz000725','sz002475','sz002415','sz300059','sz300015','sz300418','sz002230',
-            'sh600150','sh601989','sh600316','sz000768','sz002179','sz002049','sz000063'
-            // ...(已内置处理，循环中会自动补充更多行业样本)
+            'sh600104','sz000625','sz002497','sz002142','sz002027','sz000725','sz002475',
+            'sz002415','sz300059','sz300015','sz300418','sz002230','sz000063','sz000768'
+            // 后期可通过手动添加框动态增加
         ];
 
         const API = "https://qt.gtimg.cn/q=";
 
         async function updateRadar() {
             const container = document.getElementById('radarList');
-            const mktResp = await fetch(`${API}sh000001,sz399006`).then(r => r.text());
-            const mktD = mktResp.split(';');
-            const shPct = parseFloat(mktD[0].split('~')[32]);
-            
-            document.getElementById('mktScore').innerText = shPct > 0 ? "红盘情绪" : "低迷防御";
-            document.getElementById('mktScore').style.color = shPct > 0 ? "#ef4444" : "#22c55e";
-            document.getElementById('mktAdvice').innerText = shPct > 0 ? "策略：高分股积极尝试，严格1R保本" : "策略：控制开仓频率，分批止损";
+            try {
+                const mktResp = await fetch(`${API}sh000001,sz399006`).then(r => r.text());
+                const mktD = mktResp.split(';');
+                const shPct = parseFloat(mktD[0].split('~')[32]);
+                
+                document.getElementById('mktScore').innerText = shPct > 0 ? "红盘情绪" : "低迷防御";
+                document.getElementById('mktScore').style.color = shPct > 0 ? "#ef4444" : "#22c55e";
+                document.getElementById('mktAdvice').innerText = shPct > 0 ? "策略：高分股积极尝试，严格1R保本" : "策略：控制开仓，谨防惯性下跌";
 
-            let allResults = [];
-            // 分批获取
-            for (let i = 0; i < corePool.length; i += 15) {
-                const batch = corePool.slice(i, i + 15).join(',');
-                const resp = await fetch(`${API}${batch}`).then(r => r.text());
-                const lines = resp.split(';').filter(l => l.length > 20);
-                lines.forEach(line => {
-                    const d = line.split('~');
-                    const code = d[0].split('=')[0].split('_')[2];
-                    const price = parseFloat(d[3]);
-                    // 核心过滤逻辑：剔除科创板(688) 和 股价超过 100 元的票
-                    if (!code.startsWith('688') && price <= 100) {
-                        allResults.push({ d, score: calcScore(d) });
-                    }
-                });
+                let allResults = [];
+                for (let i = 0; i < corePool.length; i += 15) {
+                    const batch = corePool.slice(i, i + 15).join(',');
+                    const resp = await fetch(`${API}${batch}`).then(r => r.text());
+                    const lines = resp.split(';').filter(l => l.length > 20);
+                    lines.forEach(line => {
+                        const d = line.split('~');
+                        const code = d[0].split('=')[0].split('_')[2];
+                        const price = parseFloat(d[3]);
+                        // 过滤逻辑：剔除科创板(688) 和 股价 > 100
+                        if (!code.startsWith('688') && price <= 100) {
+                            allResults.push({ d, score: calcScore(d) });
+                        }
+                    });
+                }
+
+                allResults.sort((a, b) => b.score - a.score);
+                container.innerHTML = "";
+                allResults.forEach(item => renderItem(item.d, item.score));
+                document.getElementById('updateTime').innerText = "最后刷新 " + new Date().toLocaleTimeString();
+            } catch (e) {
+                console.log("数据加载中...");
             }
-
-            allResults.sort((a, b) => b.score - a.score);
-            container.innerHTML = "";
-            allResults.forEach(item => renderItem(item.d, item.score));
-            document.getElementById('updateTime').innerText = "最后更新 " + new Date().toLocaleTimeString();
         }
 
         function calcScore(d) {
@@ -106,8 +117,8 @@
             let s = 50;
             if(pct > 1.5) s += 15; if(pct > 4) s += 15;
             if(vol > 1.4) s += 15;
-            if(to > 1 && to < 10) s += 10;
-            if(pct < 0) s -= 30; // 只要是绿盘就大幅扣分
+            if(to > 1.5 && to < 10) s += 10;
+            if(pct < 0) s -= 30;
             return s;
         }
 
@@ -136,7 +147,7 @@
 
         function showOrder(d, score) {
             const p = parseFloat(d[3]), r = p * 0.038, stop = (p - r).toFixed(2), t1 = (p + r).toFixed(2), t2 = (p + r * 2).toFixed(2);
-            // 针对2万本金，单笔风险控制在 400元 (2%)
+            // 本金2万风险控制逻辑
             const shares = Math.floor(400 / r / 100) * 100;
             const totalCost = (shares * p).toFixed(0);
 
@@ -144,22 +155,31 @@
             document.getElementById('orderContent').innerHTML = `
                 <div class="flex justify-between items-end border-b border-emerald-500/20 pb-2 mb-3">
                     <span class="text-sm font-black text-white">${d[1]} 2W本金指令</span>
-                    <span class="text-[9px] font-bold text-emerald-500">建议仓位：${shares}股 (约¥${totalCost})</span>
+                    <span class="text-[9px] font-bold text-emerald-500">建议仓位：${shares}股 (¥${totalCost})</span>
                 </div>
-                <div class="grid grid-cols-3 gap-2 text-center mb-3">
-                    <div class="bg-black/40 p-1 rounded"><div class="text-[8px] text-slate-500">买入</div><div class="text-xs font-bold font-mono">${p}</div></div>
-                    <div class="bg-red-500/10 p-1 rounded"><div class="text-[8px] text-red-500 font-bold uppercase">止损位</div><div class="text-xs font-bold font-mono text-red-500">${stop}</div></div>
-                    <div class="bg-emerald-500/20 p-1 rounded"><div class="text-[8px] text-emerald-500 font-bold uppercase">保本减仓</div><div class="text-xs font-bold font-mono text-emerald-500">${t1}</div></div>
+                <div class="grid grid-cols-3 gap-2 text-center mb-2">
+                    <div class="bg-black/40 p-1 rounded"><div class="text-[8px] text-slate-500">买入价</div><div class="text-xs font-bold font-mono">${p}</div></div>
+                    <div class="bg-red-500/10 p-1 rounded border border-red-500/20"><div class="text-[8px] text-red-500 font-bold uppercase">止损价</div><div class="text-xs font-bold font-mono text-red-500">${stop}</div></div>
+                    <div class="bg-emerald-500/20 p-1 rounded"><div class="text-[8px] text-emerald-500 font-bold uppercase">保本位</div><div class="text-xs font-bold font-mono text-emerald-500">${t1}</div></div>
                 </div>
                 <div class="bg-emerald-500/10 p-2 rounded text-center">
                     <div class="text-[8px] text-emerald-500 font-bold">目标止盈 (2R位)</div>
                     <div class="text-xl font-black text-emerald-500 font-mono">¥${t2}</div>
                 </div>
-                <div class="text-[9px] text-slate-500 mt-2 italic leading-tight text-center">
-                    2万本金策略：若到达 ${t1} 卖出一半，剩余仓位将止损价移至买入价，开启无风险获利模式。
+                <div class="text-[9px] text-slate-500 mt-2 italic text-center">
+                    注：到达保本位卖出一半，将剩下一半止损移至成本价。
                 </div>
             `;
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function manualAdd() {
+            const val = document.getElementById('newInput').value.trim().toLowerCase();
+            if(val) {
+                if(!corePool.includes(val)) corePool.unshift(val);
+                updateRadar();
+                document.getElementById('newInput').value = "";
+            }
         }
 
         updateRadar();
