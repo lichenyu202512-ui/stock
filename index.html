@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>博弈雷达 V8.0-实战版</title>
+    <title>博弈雷达 V8.2-稳定版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #020617; color: #f8fafc; font-family: system-ui, -apple-system; }
@@ -18,35 +18,35 @@
     <div class="max-w-md mx-auto">
         <div class="card p-3 border-t-4 border-red-500">
             <div class="flex justify-between items-center mb-2">
-                <span id="updateTime" class="text-[10px] text-slate-500 font-mono">正在扫描实时样本...</span>
-                <span class="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded font-bold">本金 2W 专用</span>
+                <span id="updateTime" class="text-[10px] text-slate-500 font-mono">雷达就绪</span>
+                <span class="text-[9px] bg-red-600 text-white px-2 py-0.5 rounded font-bold">2W实战专用</span>
             </div>
-            <div class="grid grid-cols-3 gap-2">
-                <div class="text-center bg-black/20 p-2 rounded">
-                    <div class="text-[9px] text-slate-500 uppercase">大盘评分</div>
-                    <div id="mktScore" class="font-black text-sm italic">--</div>
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-black/20 p-2 rounded">
+                    <div class="text-[9px] text-slate-500 uppercase">大盘状态</div>
+                    <div id="mktScore" class="font-black text-sm">--</div>
                 </div>
-                <div id="mktAdvice" class="col-span-2 flex items-center justify-center bg-blue-500/10 rounded text-[11px] font-bold text-blue-400 italic text-center p-1">
-                    正在评估市场博弈环境...
+                <div id="mktAdvice" class="col-span-2 flex items-center justify-center bg-blue-500/10 rounded text-[10px] font-bold text-blue-400 p-1">
+                    等待数据同步...
                 </div>
             </div>
         </div>
 
         <div class="card p-3">
             <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
-                <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest italic">Alpha 机会雷达 (低价精选)</h2>
-                <div class="text-[9px] text-slate-500">已过滤 >100元 / 688</div>
+                <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest italic">机会雷达</h2>
+                <div class="text-[9px] text-slate-500">过滤 >100元 / 688</div>
             </div>
-            <div id="radarList" class="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-                <div class="text-center py-10 text-slate-600 text-[10px] animate-pulse">全市场 Alpha 信号捕获中...</div>
+            <div id="radarList" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                <div class="text-center py-10 text-slate-600 text-[10px]">正在连接实时数据源...</div>
             </div>
         </div>
 
         <div class="card p-3 bg-slate-900/40">
-            <h2 class="text-[9px] text-slate-500 font-bold uppercase mb-2">手动个股侦测</h2>
+            <h2 class="text-[9px] text-slate-500 font-bold uppercase mb-2">手动个股侦测 (支持全代码)</h2>
             <div class="flex gap-2">
-                <input id="newInput" type="text" placeholder="输入代码 如 sz000001" class="flex-1 bg-slate-950 border border-slate-800 p-2 rounded-lg text-xs outline-none text-white font-mono">
-                <button onclick="manualAdd()" class="bg-blue-600 text-white px-4 rounded-lg text-[10px] font-black btn-active uppercase">侦测</button>
+                <input id="newInput" type="text" placeholder="sz000001" class="flex-1 bg-slate-950 border border-slate-800 p-2 rounded-lg text-xs outline-none text-white font-mono">
+                <button onclick="manualAdd()" class="bg-blue-600 text-white px-5 rounded-lg text-[11px] font-black btn-active">点击侦测</button>
             </div>
         </div>
 
@@ -56,134 +56,130 @@
     </div>
 
     <script>
-        // 200+ 精选各行业活跃龙头 (重点加入资源股/低价权重)
-        const corePool = [
-            // 资源板块 (石油、煤炭、黄金、有色)
-            'sh601857','sh600028','sh601088','sh601225','sh600121','sh601898','sh601001','sh601958',
-            'sh601600','sh600019','sh601899','sh603993','sh601390','sh601186','sz000423','sz000878',
-            'sz000960','sz000630','sz000751','sz000060','sz000807','sz002460','sz002466',
-            // 金融/权重
-            'sh601288','sh601398','sh601939','sh601988','sh600015','sh600030','sh601788','sh601318',
-            'sh601628','sh601601','sh600048','sh600383','sz001979','sz000001',
-            // 电力/基建/公用
-            'sh600900','sh600011','sh600023','sh600674','sh600886','sh600905','sh601668',
-            // 制造/半导体/AI/汽车
-            'sz000333','sz000651','sz002007','sz002714','sz000858','sz000729','sz002594',
-            'sh600104','sz000625','sz002497','sz002142','sz002027','sz000725','sz002475',
-            'sz002415','sz300059','sz300015','sz300418','sz002230','sz000063','sz000768'
-            // 后期可通过手动添加框动态增加
+        // 名单精简并确保代码正确
+        let corePool = [
+            'sh601857','sh600028','sh601088','sh601225','sh601898','sh601958','sh601600',
+            'sh601899','sh603993','sh601390','sh601186','sz000423','sz000878','sz000960',
+            'sz002460','sz002466','sh601288','sh601398','sh600030','sh601318','sz000001',
+            'sz000333','sz000651','sz002594','sh600104','sz000625','sz000725','sz300059'
         ];
 
         const API = "https://qt.gtimg.cn/q=";
 
         async function updateRadar() {
-            const container = document.getElementById('radarList');
             try {
-                const mktResp = await fetch(`${API}sh000001,sz399006`).then(r => r.text());
-                const mktD = mktResp.split(';');
-                const shPct = parseFloat(mktD[0].split('~')[32]);
-                
-                document.getElementById('mktScore').innerText = shPct > 0 ? "红盘情绪" : "低迷防御";
-                document.getElementById('mktScore').style.color = shPct > 0 ? "#ef4444" : "#22c55e";
-                document.getElementById('mktAdvice').innerText = shPct > 0 ? "策略：高分股积极尝试，严格1R保本" : "策略：控制开仓，谨防惯性下跌";
+                // 1. 获取大盘
+                const mktResp = await fetch(`${API}sh000001`).then(r => r.text());
+                const mktD = mktResp.split('~');
+                const shPct = parseFloat(mktD[32]) || 0;
+                document.getElementById('mktScore').innerText = shPct >= 0 ? "偏强" : "偏弱";
+                document.getElementById('mktScore').style.color = shPct >= 0 ? "#ef4444" : "#22c55e";
+                document.getElementById('mktAdvice').innerText = shPct >= 0 ? "红盘环境：关注起爆点，执行1R保本" : "弱势环境：严格控制仓位，不轻易开仓";
 
+                // 2. 获取个股
                 let allResults = [];
-                for (let i = 0; i < corePool.length; i += 15) {
-                    const batch = corePool.slice(i, i + 15).join(',');
+                // 增加分段处理
+                const batchSize = 10;
+                for (let i = 0; i < corePool.length; i += batchSize) {
+                    const batch = corePool.slice(i, i + batchSize).join(',');
                     const resp = await fetch(`${API}${batch}`).then(r => r.text());
-                    const lines = resp.split(';').filter(l => l.length > 20);
+                    const lines = resp.split(';').filter(l => l.length > 30);
+                    
                     lines.forEach(line => {
-                        const d = line.split('~');
-                        const code = d[0].split('=')[0].split('_')[2];
-                        const price = parseFloat(d[3]);
-                        // 过滤逻辑：剔除科创板(688) 和 股价 > 100
-                        if (!code.startsWith('688') && price <= 100) {
-                            allResults.push({ d, score: calcScore(d) });
-                        }
+                        try {
+                            const d = line.split('~');
+                            const price = parseFloat(d[3]);
+                            const code = d[0].split('_').pop().split('=')[0];
+                            // 过滤：价格>100 或 科创板
+                            if (price > 0 && price <= 100 && !code.startsWith('688')) {
+                                allResults.push({ d, score: calcScore(d) });
+                            }
+                        } catch(e) {}
                     });
                 }
 
                 allResults.sort((a, b) => b.score - a.score);
+                const container = document.getElementById('radarList');
                 container.innerHTML = "";
                 allResults.forEach(item => renderItem(item.d, item.score));
-                document.getElementById('updateTime').innerText = "最后刷新 " + new Date().toLocaleTimeString();
-            } catch (e) {
-                console.log("数据加载中...");
+                document.getElementById('updateTime').innerText = "同步成功 " + new Date().toLocaleTimeString();
+            } catch (err) {
+                document.getElementById('updateTime').innerText = "网络波动，重试中...";
             }
         }
 
         function calcScore(d) {
-            const pct = parseFloat(d[32]), vol = parseFloat(d[36]), to = parseFloat(d[38]);
+            const pct = parseFloat(d[32]) || 0, vol = parseFloat(d[36]) || 0;
             let s = 50;
             if(pct > 1.5) s += 15; if(pct > 4) s += 15;
-            if(vol > 1.4) s += 15;
-            if(to > 1.5 && to < 10) s += 10;
+            if(vol > 1.3) s += 15;
             if(pct < 0) s -= 30;
             return s;
         }
 
         function renderItem(d, score) {
             const pct = parseFloat(d[32]), isStrong = score >= 75;
+            const container = document.getElementById('radarList');
             const div = document.createElement('div');
-            div.className = `flex justify-between items-center p-3 rounded-xl bg-slate-900/80 border ${isStrong ? 'border-red-500/40 high-glow' : 'border-slate-800'} active:bg-slate-800 transition`;
+            div.className = `flex justify-between items-center p-3 rounded-xl bg-slate-900/80 border ${isStrong ? 'border-red-500/40 high-glow' : 'border-slate-800'}`;
             div.onclick = () => showOrder(d, score);
             div.innerHTML = `
                 <div>
                     <div class="text-sm font-black text-white">${d[1]}</div>
-                    <div class="text-[9px] text-slate-500 font-mono">${d[0].split('=')[0].split('_')[2]} | 换手 ${d[38]}%</div>
+                    <div class="text-[9px] text-slate-500 font-mono">${d[0].split('_').pop().split('=')[0]} | 换手 ${d[38]}%</div>
                 </div>
                 <div class="flex items-center gap-4 text-right">
                     <div>
-                        <div class="text-sm font-mono font-black ${pct > 0 ? 'text-red-500' : 'text-green-500'}">${d[3]}</div>
-                        <div class="text-[10px] ${pct > 0 ? 'text-red-500' : 'text-green-500'}">${pct}%</div>
+                        <div class="text-sm font-mono font-black ${pct >= 0 ? 'text-red-500' : 'text-green-500'}">${d[3]}</div>
+                        <div class="text-[10px] ${pct >= 0 ? 'text-red-500' : 'text-green-500'}">${pct}%</div>
                     </div>
                     <div class="min-w-[30px] text-center">
                         <div class="text-sm font-black ${isStrong ? 'text-red-500' : 'text-slate-600'}">${score}</div>
                     </div>
                 </div>
             `;
-            document.getElementById('radarList').appendChild(div);
+            container.appendChild(div);
         }
 
         function showOrder(d, score) {
             const p = parseFloat(d[3]), r = p * 0.038, stop = (p - r).toFixed(2), t1 = (p + r).toFixed(2), t2 = (p + r * 2).toFixed(2);
-            // 本金2万风险控制逻辑
             const shares = Math.floor(400 / r / 100) * 100;
             const totalCost = (shares * p).toFixed(0);
 
             document.getElementById('orderBox').classList.remove('hidden');
             document.getElementById('orderContent').innerHTML = `
                 <div class="flex justify-between items-end border-b border-emerald-500/20 pb-2 mb-3">
-                    <span class="text-sm font-black text-white">${d[1]} 2W本金指令</span>
-                    <span class="text-[9px] font-bold text-emerald-500">建议仓位：${shares}股 (¥${totalCost})</span>
+                    <span class="text-sm font-black text-white">${d[1]} 2W本金建议</span>
+                    <span class="text-[9px] font-bold text-emerald-500">${shares}股 (¥${totalCost})</span>
                 </div>
                 <div class="grid grid-cols-3 gap-2 text-center mb-2">
-                    <div class="bg-black/40 p-1 rounded"><div class="text-[8px] text-slate-500">买入价</div><div class="text-xs font-bold font-mono">${p}</div></div>
-                    <div class="bg-red-500/10 p-1 rounded border border-red-500/20"><div class="text-[8px] text-red-500 font-bold uppercase">止损价</div><div class="text-xs font-bold font-mono text-red-500">${stop}</div></div>
-                    <div class="bg-emerald-500/20 p-1 rounded"><div class="text-[8px] text-emerald-500 font-bold uppercase">保本位</div><div class="text-xs font-bold font-mono text-emerald-500">${t1}</div></div>
+                    <div class="bg-black/40 p-1 rounded"><div class="text-[8px] text-slate-500">买入</div><div class="text-xs font-bold">${p}</div></div>
+                    <div class="bg-red-500/10 p-1 rounded"><div class="text-[8px] text-red-500">止损</div><div class="text-xs font-bold text-red-500">${stop}</div></div>
+                    <div class="bg-emerald-500/20 p-1 rounded"><div class="text-[8px] text-emerald-500">保本位</div><div class="text-xs font-bold text-emerald-500">${t1}</div></div>
                 </div>
-                <div class="bg-emerald-500/10 p-2 rounded text-center">
-                    <div class="text-[8px] text-emerald-500 font-bold">目标止盈 (2R位)</div>
-                    <div class="text-xl font-black text-emerald-500 font-mono">¥${t2}</div>
-                </div>
-                <div class="text-[9px] text-slate-500 mt-2 italic text-center">
-                    注：到达保本位卖出一半，将剩下一半止损移至成本价。
-                </div>
+                <div class="mt-2 text-[10px] text-center text-emerald-400 font-bold">最终止盈目标: ¥${t2}</div>
             `;
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        function manualAdd() {
+        async function manualAdd() {
             const val = document.getElementById('newInput').value.trim().toLowerCase();
-            if(val) {
-                if(!corePool.includes(val)) corePool.unshift(val);
-                updateRadar();
-                document.getElementById('newInput').value = "";
-            }
+            if(!val) return;
+            try {
+                const resp = await fetch(`${API}${val}`).then(r => r.text());
+                const d = resp.split('~');
+                if(d.length > 30) {
+                    if(!corePool.includes(val)) corePool.unshift(val);
+                    updateRadar();
+                    showOrder(d, calcScore(d));
+                } else {
+                    alert("代码格式错误，请输入如 sz000001");
+                }
+            } catch(e) { alert("查询失败"); }
         }
 
         updateRadar();
-        setInterval(updateRadar, 15000); 
+        setInterval(updateRadar, 20000); 
     </script>
 </body>
 </html>
