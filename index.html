@@ -3,86 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A股模型执行终端</title>
+    <title>A股博弈决策终端</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #020617; -webkit-tap-highlight-color: transparent; }
-        input { background: #1e293b !important; color: #fff !important; border: 1px solid #334155 !important; }
-        .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; }
+        body { background-color: #020617; color: #e2e8f0; }
+        .module { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; }
+        .accent-blue { border-left: 4px solid #3b82f6; }
+        .accent-green { border-left: 4px solid #10b981; }
+        .accent-red { border-left: 4px solid #ef4444; }
+        input[type="checkbox"] { width: 1.1rem; height: 1.1rem; accent-color: #3b82f6; cursor: pointer; }
     </style>
 </head>
-<body class="text-slate-200 p-4">
-    <div class="max-w-md mx-auto space-y-4">
-        <div class="card p-5 shadow-2xl">
-            <h2 class="text-xs font-bold text-slate-500 mb-3 tracking-widest uppercase">Market Data / 实时行情</h2>
+<body class="p-4">
+    <div class="max-w-md mx-auto">
+        <div class="module accent-blue">
+            <h2 class="text-[10px] font-bold text-slate-500 mb-3 tracking-widest uppercase">01 趋势与强度侦测</h2>
             <div class="flex gap-2 mb-4">
-                <input id="code" type="text" placeholder="代码(如 sh600519)" class="flex-1 p-3 rounded-lg text-lg font-mono">
-                <button onclick="getPrice()" class="bg-blue-600 px-6 rounded-lg font-bold active:scale-95 transition">查询</button>
+                <input id="code" type="text" placeholder="输入代码 如 sz000001" class="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-lg text-white font-mono outline-none">
+                <button onclick="analyzeStock()" class="bg-blue-600 px-6 rounded-lg font-bold active:scale-95 transition">侦测</button>
             </div>
-            <div class="flex justify-between items-end">
-                <div id="price" class="text-4xl font-mono font-bold text-green-400">--.--</div>
-                <div id="stockName" class="text-slate-400 text-sm mb-1">等待输入...</div>
+            <div id="marketData" class="hidden">
+                <div class="flex justify-between items-baseline mb-2">
+                    <span id="sName" class="text-xl font-bold text-white">--</span>
+                    <span id="sPrice" class="text-3xl font-mono text-green-400 font-bold">0.00</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div class="bg-slate-800 p-2 rounded flex justify-between">强度对比: <span id="rsLabel" class="font-bold text-yellow-500">计算中</span></div>
+                    <div class="bg-slate-800 p-2 rounded flex justify-between">量能侦测: <span id="volLabel" class="text-blue-400 font-bold">检测中</span></div>
+                </div>
             </div>
         </div>
 
-        <div class="card p-5 border-t-2 border-t-red-500/50">
-            <h2 class="text-xs font-bold text-slate-500 mb-3 tracking-widest uppercase">Risk Model / 2%风控模型</h2>
+        <div class="module accent-green">
+            <h2 class="text-[10px] font-bold text-green-500 mb-3 tracking-widest uppercase">02 确定性准入核对</h2>
+            <div class="space-y-3 text-sm">
+                <label class="flex items-center gap-3"><input type="checkbox" class="check-item"> <span>板块处于今日领涨前五？</span></label>
+                <label class="flex items-center gap-3 border-t border-slate-800 pt-2"><input type="checkbox" class="check-item"> <span>缩量回踩支撑或放量突破？</span></label>
+                <label class="flex items-center gap-3 border-t border-slate-800 pt-2"><input type="checkbox" class="check-item"> <span>上方无重压抛盘密集区？</span></label>
+            </div>
+        </div>
+
+        <div class="module accent-red">
+            <h2 class="text-[10px] font-bold text-red-500 mb-3 tracking-widest uppercase">03 执行计划 (2% 风控)</h2>
             <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-[10px] text-slate-500 mb-1 block">买入价</label>
-                    <input id="entry" type="number" step="0.01" class="w-full p-3 rounded-lg font-mono">
-                </div>
-                <div>
-                    <label class="text-[10px] text-slate-500 mb-1 block">止损价</label>
-                    <input id="stop" type="number" step="0.01" class="w-full p-3 rounded-lg font-mono text-red-400">
-                </div>
+                <div><label class="text-[10px] text-slate-500 block mb-1">入场价格</label><input id="entryPrice" type="number" step="0.01" class="w-full bg-slate-900 border border-slate-700 p-2 rounded font-mono text-white"></div>
+                <div><label class="text-[10px] text-red-400 block mb-1 font-bold">系统建议止损价</label><input id="stopPrice" type="number" step="0.01" class="w-full bg-slate-900 border border-slate-700 p-2 rounded font-mono text-red-400"></div>
             </div>
-            <button onclick="calc()" class="w-full bg-red-600 mt-5 py-4 rounded-xl font-bold text-lg active:bg-red-700 shadow-lg">生成执行指令</button>
+            <button onclick="generateTradingPlan()" class="w-full bg-white text-slate-900 mt-5 py-4 rounded-xl font-black shadow-lg uppercase active:bg-blue-600 active:text-white transition">生成确定性交易单</button>
         </div>
 
-        <div id="res" class="hidden card p-5 bg-blue-900/10 border-blue-500/30">
-            </div>
+        <div id="planOutput" class="hidden module border-dashed border-blue-500/50 bg-blue-900/10"><h3 class="text-blue-400 font-bold mb-4">📋 专家决策执行单</h3><div id="planContent" class="space-y-4"></div></div>
     </div>
 
     <script>
-        // 核心：获取行情逻辑
-        function getPrice() {
-            let code = document.getElementById('code').value.toLowerCase();
+        const API = "https://qt.gtimg.cn/q=";
+        async function analyzeStock() {
+            let code = document.getElementById('code').value.toLowerCase().trim();
             if(!code) return;
             const script = document.createElement('script');
-            script.src = `https://hq.sinajs.cn/list=${code}`;
+            script.src = `${API}${code}`;
             document.body.appendChild(script);
-            script.onload = function() {
-                const data = window['hq_str_' + code].split(',');
-                if(data.length < 5) return alert('格式错误，例：sh600000 或 sz000001');
-                document.getElementById('stockName').innerText = data[0];
-                document.getElementById('price').innerText = data[3];
-                document.getElementById('entry').value = data[3];
-            }
+            script.onload = () => {
+                const data = window['v_' + code].split('~');
+                document.getElementById('marketData').classList.remove('hidden');
+                document.getElementById('sName').innerText = data[1];
+                document.getElementById('sPrice').innerText = data[3];
+                document.getElementById('entryPrice').value = data[3];
+                document.getElementById('stopPrice').value = (data[3] * 0.965).toFixed(2);
+                const pct = parseFloat(data[32]);
+                document.getElementById('rsLabel').innerText = pct > 2 ? "强于大盘" : "跟随行情";
+                document.getElementById('volLabel').innerText = data[36] > 1.2 ? "放量活跃" : "缩量稳健";
+            };
         }
-
-        // 核心：仓位计算逻辑
-        function calc() {
-            const entry = parseFloat(document.getElementById('entry').value);
-            const stop = parseFloat(document.getElementById('stop').value);
-            const total = 200000; // 这里可以改成你的实际资金
-            
-            if(entry <= stop) return alert('止损价必须低于买入价');
-            
-            const riskPerShare = entry - stop;
-            const shares = Math.floor((total * 0.02) / riskPerShare / 100) * 100;
-            const target = (entry + riskPerShare * 2).toFixed(2);
-
-            const resDiv = document.getElementById('res');
-            resDiv.classList.remove('hidden');
-            resDiv.innerHTML = `
-                <div class="space-y-2">
-                    <div class="flex justify-between"><span>执行规模:</span><span class="text-xl font-bold text-white">${shares} 股</span></div>
-                    <div class="flex justify-between text-sm text-slate-400"><span>名义市值:</span><span>¥${(shares * entry).toFixed(0)}</span></div>
-                    <div class="border-t border-slate-800 my-2"></div>
-                    <div class="flex justify-between text-green-400"><span>止盈目标(2R):</span><span class="font-bold">¥${target}</span></div>
-                </div>
-            `;
+        function generateTradingPlan() {
+            const checks = document.querySelectorAll('.check-item:checked').length;
+            if(checks < 3) return alert(`模型不匹配！仅满足 ${checks}/3 项条件。不可复制的交易不要做。`);
+            const entry = parseFloat(document.getElementById('entryPrice').value);
+            const stop = parseFloat(document.getElementById('stopPrice').value);
+            const capital = 200000;
+            const r_unit = entry - stop;
+            const shares = Math.floor((capital * 0.02) / r_unit / 100) * 100;
+            const t1 = (entry + r_unit).toFixed(2); 
+            const t2 = (entry + r_unit * 2).toFixed(2);
+            document.getElementById('planOutput').classList.remove('hidden');
+            document.getElementById('planContent').innerHTML = `
+                <div class="bg-white/5 p-3 rounded flex justify-between"><span class="text-slate-400 text-sm">入场仓位：</span><span class="text-2xl font-black text-white">${shares} 股</span></div>
+                <div class="grid grid-cols-2 gap-2"><div class="bg-red-900/20 p-2 rounded border border-red-500/20"><p class="text-[10px] text-red-400 font-bold">硬性止损价</p><p class="font-bold text-white">¥${stop}</p></div><div class="bg-green-900/20 p-2 rounded border border-green-500/20"><p class="text-[10px] text-green-400 font-bold">减仓/保本价</p><p class="font-bold text-white">¥${t1}</p></div></div>
+                <div class="bg-green-500/20 p-3 rounded text-center border border-green-500/30"><p class="text-[10px] text-green-400 font-bold mb-1">最终获利目标</p><p class="text-2xl font-black text-green-500 font-mono">¥${t2}</p></div>`;
         }
     </script>
 </body>
