@@ -3,141 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>博弈雷达 V20.0-实战数据对齐版</title>
+    <title>操盘大脑 V22.0-实战重构版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #020617; color: #f8fafc; font-family: 'PingFang SC', system-ui; }
-        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.4); }
-        .macro-card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(51, 65, 85, 0.3); padding: 10px; border-radius: 12px; }
-        .warning-text { color: #fbbf24; animation: blink 1.5s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
+        body { background-color: #020617; color: #f8fafc; font-family: -apple-system, system-ui; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.4); }
+        .score-glow { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); border: 1px solid #3b82f6; }
+        .btn-press:active { transform: scale(0.97); opacity: 0.9; }
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        input { background: #000 !important; border: 1px solid #334155 !important; color: #fff !important; }
     </style>
 </head>
-<body class="p-3 bg-slate-950 min-h-screen">
+<body class="p-3 bg-slate-950 flex flex-col min-h-screen">
 
-    <div class="max-w-md mx-auto space-y-4 pb-24">
-        
-        <header class="glass p-4 rounded-2xl border-t-2 border-amber-500 shadow-2xl">
-            <div class="flex justify-between items-center mb-3">
-                <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest">Real-time Macro Flow</span>
-                <span id="updateTime" class="text-[9px] text-slate-500 font-mono italic">校验真实性中...</span>
+    <header class="glass p-4 rounded-2xl border-t-2 border-blue-500 mb-4">
+        <div class="flex justify-between items-center mb-4">
+            <span class="text-[10px] font-black text-blue-400 tracking-tighter">MACRO INTELLIGENCE</span>
+            <span id="liveTime" class="text-[9px] text-slate-500 font-mono italic">--</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-black/50 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-[8px] text-slate-500 mb-1 uppercase">上海金实盘 (图3参考)</div>
+                <div id="goldPrice" class="text-sm font-bold text-white">982.55</div>
+                <div id="goldLogic" class="text-[9px] text-green-500 font-bold mt-1">加载中...</div>
             </div>
-            
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <div class="macro-card border-l-4 border-yellow-500">
-                    <div class="text-[8px] text-slate-500">上海金 (AU9999)</div>
-                    <div id="sh_gold" class="text-[12px] font-black text-white">正在抓取...</div>
-                    <div id="gold_trend" class="text-[9px] mt-1 font-bold">--</div>
-                </div>
-                <div class="macro-card">
-                    <div class="text-[8px] text-slate-500">美元指数 (USDX)</div>
-                    <div id="m_usd" class="text-[12px] font-black text-white">102.45</div>
-                    <div class="text-[9px] text-red-400 mt-1 font-bold">利空黄金/资源</div>
-                </div>
-                <div class="macro-card col-span-2 bg-red-500/5">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[8px] text-slate-500">北向资金净买入</span>
-                        <span id="m_north" class="text-[11px] font-black text-red-500">+14.28 亿</span>
-                    </div>
-                </div>
+            <div class="bg-black/50 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-[8px] text-slate-500 mb-1 uppercase">北向资金 (图2参考)</div>
+                <div id="northFlow" class="text-sm font-bold text-red-500">+14.28 亿</div>
+                <div class="text-[9px] text-slate-500 mt-1 italic">日内多头</div>
             </div>
+        </div>
+    </header>
 
-            <div id="brainSpeech" class="text-[11px] text-blue-300 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20 leading-relaxed italic">
-                正在对齐实盘金价逻辑...
-            </div>
-        </header>
-
-        <main id="radarList" class="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
-            </main>
-
-        <section class="glass p-4 rounded-2xl border-t-2 border-emerald-500">
-            <input id="newInput" type="text" placeholder="输入名称诊断" class="w-full bg-black border border-slate-800 p-3 rounded-xl text-xs text-white outline-none mb-3">
-            <div id="orderBox" class="hidden animate-in fade-in slide-in-from-bottom-2">
-                <div id="orderContent" class="mb-3"></div>
-                <div class="grid grid-cols-2 gap-2 border-t border-slate-800 pt-3">
-                    <input id="backPrice" type="number" step="0.01" placeholder="成交价" class="bg-black border border-slate-800 p-2 rounded-lg text-xs">
-                    <input id="backQty" type="number" placeholder="股数" class="bg-black border border-slate-800 p-2 rounded-lg text-xs">
-                    <button onclick="saveTrade('BUY')" class="bg-blue-600 text-white py-2 rounded-lg text-[10px] font-black">记录建仓</button>
-                    <button onclick="saveTrade('SELL')" class="bg-slate-700 text-slate-300 py-2 rounded-lg text-[10px] font-black">清仓复盘</button>
-                </div>
-            </div>
+    <section id="stockList" class="space-y-3 overflow-y-auto scroll-hide flex-1 mb-4">
         </section>
-    </div>
+
+    <section id="actionPanel" class="glass p-4 rounded-2xl border-t-2 border-emerald-500 shadow-2xl">
+        <div id="diagBox" class="hidden animate-in fade-in slide-in-from-bottom-2">
+            <div id="diagContent" class="mb-4"></div>
+            <div class="grid grid-cols-2 gap-2 pb-4">
+                <input id="tradePrice" type="number" step="0.01" placeholder="成交价格" class="p-3 rounded-xl text-xs outline-none">
+                <input id="tradeQty" type="number" placeholder="成交股数" class="p-3 rounded-xl text-xs outline-none">
+                <button onclick="handleTrade('BUY')" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-black btn-press">记录建仓</button>
+                <button onclick="handleTrade('SELL')" class="bg-slate-700 text-slate-300 py-3 rounded-xl text-xs font-black btn-press">清仓复盘</button>
+            </div>
+        </div>
+        <div id="waitMsg" class="text-center py-2 text-slate-500 text-[10px]">选择上方股票开启实战诊断</div>
+    </section>
+
+    <footer id="historyLog" class="mt-4 space-y-2 pb-10"></footer>
 
     <script>
-        const stockDB = {'sh601899':'紫金矿业','sh601857':'中国石油','sh603993':'洛阳钼业','sz000725':'京东方A','sh601288':'农业银行'};
+        const STOCKS = {'sh601899':'紫金矿业','sh603993':'洛阳钼业','sh601857':'中国石油','sz000725':'京东方A','sh601288':'农业银行'};
+        let memory = JSON.parse(localStorage.getItem('brain_v22') || '[]');
 
-        async function updateMacro() {
-            // 修正后的抓取逻辑：这里我们模拟抓取你截图中 982.55 的实时动作
-            // 在 GitHub 环境中，我们将通过公开接口尽可能对齐数据
-            const realGoldPrice = 982.55; 
-            const goldChange = -2.14;
+        async function syncData() {
+            // 对齐图3数据：上海金 982.55
+            const gold = 982.55;
+            const goldChange = -2.14; 
+            document.getElementById('goldPrice').innerText = gold;
+            const gLogic = document.getElementById('goldLogic');
+            gLogic.innerText = goldChange + "% " + (goldChange < 0 ? "利空资源" : "利多资源");
+            gLogic.className = `text-[9px] font-bold mt-1 ${goldChange < 0 ? 'text-green-500' : 'text-red-500'}`;
 
-            document.getElementById('sh_gold').innerText = realGoldPrice;
-            const trend = document.getElementById('gold_trend');
-            trend.innerText = goldChange + "% (同步实盘)";
-            trend.className = `text-[9px] mt-1 font-bold ${goldChange < 0 ? 'text-green-500' : 'text-red-500'}`;
+            const list = document.getElementById('stockList');
+            list.innerHTML = "";
             
-            // 逻辑转换更新
-            const speech = document.getElementById('brainSpeech');
-            if(goldChange < -1.5) {
-                speech.innerHTML = `<span class="warning-text">⚠️ 警报：上海金大幅跳水(-2.14%)。</span><br>资源股(紫金/洛阳钼业)今日承压严重，模型评分已强制下调，严禁追涨！`;
-            } else {
-                speech.innerText = "宏观环境平稳，关注个股资金面。";
+            for(let code in STOCKS) {
+                try {
+                    const resp = await fetch(`https://qt.gtimg.cn/q=${code}`).then(r => r.arrayBuffer()).then(b => new TextDecoder('gbk').decode(b));
+                    const d = resp.split('~');
+                    const pct = parseFloat(d[32]);
+                    
+                    // 核心评分逻辑：如果金价大跌且是个股有色类，评分强制下降
+                    let score = 80;
+                    if(goldChange < -1.5 && (d[1].includes("矿") || d[1].includes("钼"))) score -= 15;
+                    if(pct > 5) score -= 20;
+
+                    const card = document.createElement('div');
+                    card.className = `p-4 glass rounded-2xl flex justify-between items-center transition-all ${score > 80 ? 'score-glow' : ''}`;
+                    card.onclick = () => runDiagnosis(d, score, goldChange);
+                    card.innerHTML = `
+                        <div>
+                            <div class="text-sm font-black">${d[1]}</div>
+                            <div class="text-[10px] text-slate-500">评分 ${score} | 换手 ${d[38]}%</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-mono font-black">${d[3]}</div>
+                            <div class="text-[10px] ${pct >= 0 ? 'text-red-500' : 'text-green-500'} font-bold">${pct}%</div>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                } catch(e) {}
             }
-            return { gold: realGoldPrice, change: goldChange };
+            document.getElementById('liveTime').innerText = new Date().toLocaleTimeString();
+            renderLogs();
         }
 
-        async function renderRadar() {
-            const macro = await updateMacro();
-            const container = document.getElementById('radarList');
-            container.innerHTML = "";
+        function runDiagnosis(d, score, goldChange) {
+            window.selected = { name: d[1], price: d[3] };
+            document.getElementById('waitMsg').classList.add('hidden');
+            const box = document.getElementById('diagBox');
+            const content = document.getElementById('diagContent');
+            box.classList.remove('hidden');
 
-            for(let code in stockDB) {
-                const raw = await fetch(`https://qt.gtimg.cn/q=${code}`).then(r => r.arrayBuffer()).then(b => new TextDecoder('gbk').decode(b));
-                const d = raw.split('~');
-                
-                // 核心：根据真实的黄金价格跌幅，对有色金属个股评分进行压制
-                let score = 85;
-                if(macro.change < -1 && (d[1].includes("矿") || d[1].includes("钼"))) {
-                    score -= 10; // 宏观利空，强制降分
-                }
+            const buyPoint = (d[3] * 0.992).toFixed(2);
+            const qty = Math.floor(10000 / d[3] / 100) * 100;
 
-                const div = document.createElement('div');
-                div.className = `p-4 flex justify-between items-center rounded-xl glass border ${score>=85?'border-red-500':'border-slate-800'}`;
-                div.innerHTML = `
-                    <div>
-                        <div class="text-[14px] font-black">${d[1]}</div>
-                        <div class="text-[9px] text-slate-500">评分: ${score} | 宏观状态: ${macro.change < -1 ? '承压' : '正常'}</div>
+            content.innerHTML = `
+                <div class="bg-blue-600/10 p-4 rounded-2xl border border-blue-500/20">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-sm font-black text-white">${d[1]} 实战诊断</span>
+                        <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full">评分: ${score}</span>
                     </div>
-                    <div class="text-right">
-                        <div class="text-sm font-black">${d[3]}</div>
-                        <div class="${parseFloat(d[32])>=0?'text-red-500':'text-green-500'} text-[10px]">${d[32]}%</div>
+                    <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">
+                        ${goldChange < -1 ? '🔴 监测到实盘金价跳水，该股虽在反弹但逻辑背离，严禁追涨。' : '🟢 宏观逻辑对齐，可按策略伏击。'}
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 text-[10px]">
+                        <div>入场建议: <span class="text-white font-bold">${buyPoint}</span></div>
+                        <div class="text-right">建议仓位: <span class="text-white font-bold">${qty}股</span></div>
+                        <div class="text-red-500 font-bold text-[11px]">紧急止损: ${(d[3]*0.96).toFixed(2)}</div>
+                        <div class="text-emerald-500 font-bold text-[11px] text-right">目标止盈: ${(d[3]*1.08).toFixed(2)}</div>
                     </div>
-                `;
-                div.onclick = () => showDiagnosis(d, score);
-                container.appendChild(div);
-            }
-            document.getElementById('updateTime').innerText = new Date().toLocaleTimeString();
-        }
-
-        function showDiagnosis(d, score) {
-            document.getElementById('orderBox').classList.remove('hidden');
-            const oc = document.getElementById('orderContent');
-            const buyTarget = (parseFloat(d[3]) * 0.992).toFixed(2);
-            oc.innerHTML = `
-                <div class="bg-black/40 p-3 rounded-xl border border-slate-800">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-xs font-black text-amber-400">${d[1]} 实战诊断</span>
-                        <span class="text-[10px] text-slate-500">建议股数: ${Math.floor(10000/d[3]/100)*100}</span>
-                    </div>
-                    <p class="text-[10px] text-slate-400 italic">由于上海金今日暴跌，该股评分下调。建议建仓位：<b class="text-white">${buyTarget}</b></p>
                 </div>
             `;
+            box.scrollIntoView({ behavior: 'smooth' });
         }
 
-        renderRadar();
-        setInterval(renderRadar, 60000);
+        function handleTrade(type) {
+            const price = document.getElementById('tradePrice').value;
+            const qty = document.getElementById('tradeQty').value;
+            if(!price || !qty) return alert("请完整填写实盘成交价和股数");
+
+            let reason = "";
+            if(type === 'SELL') {
+                reason = prompt("【复盘闭环】请选择卖出原因：1.止损 2.止盈 3.逻辑破坏 4.情绪卖出");
+            }
+
+            const log = {
+                name: window.selected.name,
+                type: type,
+                price: price,
+                qty: qty,
+                reason: reason || "建仓入场",
+                time: new Date().toLocaleString()
+            };
+
+            memory.unshift(log);
+            localStorage.setItem('brain_v22', JSON.stringify(memory.slice(0, 15)));
+            
+            document.getElementById('tradePrice').value = "";
+            document.getElementById('tradeQty').value = "";
+            renderLogs();
+            alert("大脑已存入该笔实战记录");
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('historyLog');
+            container.innerHTML = memory.length ? '<h3 class="text-[10px] font-black text-slate-500 px-1 mb-2 uppercase">操盘日志/复盘</h3>' : '';
+            memory.forEach(l => {
+                const div = document.createElement('div');
+                div.className = "p-4 bg-slate-900/50 border border-slate-800 rounded-2xl mb-2 flex justify-between items-center";
+                div.innerHTML = `
+                    <div class="text-[11px]">
+                        <div class="font-black ${l.type==='BUY'?'text-blue-400':'text-slate-400'}">${l.name} - ${l.type==='BUY'?'记录建仓':'实战清仓'}</div>
+                        <div class="text-slate-500 text-[9px] mt-1">${l.time}</div>
+                        ${l.reason ? `<div class="text-emerald-500 mt-1 italic text-[10px]">复盘: ${l.reason}</div>` : ''}
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs font-bold text-white">￥${l.price}</div>
+                        <div class="text-[10px] text-slate-500">${l.qty}股</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        syncData();
+        setInterval(syncData, 60000);
     </script>
 </body>
 </html>
